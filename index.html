@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sudoku Puzzle</title>
+    <link rel="stylesheet" href="puzz.css" />
+  </head>
+  <body>
+    <div class="container">
+      <h1>Sudoku Puzzle</h1>
+      <select id="gridSize">
+        <option value="9" selected>9x9 (Nona)</option>
+        <option value="12">12x12 (Doza)</option>
+        <option value="16">16x16 (Hexa)</option>
+      </select>
+      <button id="randomBtn">Generate Puzzle</button>
+      <button id="downloadBtn">Download</button>
+      <div id="gridContainer"></div>
+    </div>
+
+    <script src="main.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  </body>
+</html>
