@@ -41,15 +41,24 @@ document.addEventListener("DOMContentLoaded", function () {
   randomBtn.addEventListener("click", function () {
     currentSize = parseInt(gridSizeSelect.value);
     const solution = generateValidGrid(currentSize);
+
     if (currentSize === 12 || currentSize === 16) {
       currentGrid = createSymmetricPuzzle(solution, currentSize);
     } else {
       currentGrid = createPuzzleFromGrid(solution, currentSize); // 9x9 non-symmetric
     }
+
     renderGrid(currentGrid, currentSize);
-    gridContainer.classList.remove("hidden");
-    validateBtn.classList.remove("hidden");
-    downloadBtn.classList.remove("hidden");
+
+    // Hide top controls (select + generate button)
+    document.getElementById("topControls").classList.add("hidden");
+
+    // Show grid container
+    document.getElementById("gridContainer").classList.remove("hidden");
+
+    // Show download button section
+    document.getElementById("bottomControls").classList.remove("hidden");
+    randomBtn.style.display = "none"; // hide randomBtn
     messageEl.textContent = "";
   });
 
@@ -108,6 +117,28 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     doc.save(`sudoku_${size}x${size}.pdf`);
+  });
+
+  const confirmPopup = document.getElementById("confirmPopup");
+  const confirmYes = document.getElementById("confirmYes");
+  const confirmNo = document.getElementById("confirmNo");
+
+  document.getElementById("backBtn").addEventListener("click", () => {
+    confirmPopup.classList.remove("hidden");
+  });
+
+  confirmYes.addEventListener("click", () => {
+    // Proceed with back logic
+    document.getElementById("topControls").classList.remove("hidden");
+    document.getElementById("randomBtn").style.display = "inline-block";
+    document.getElementById("gridContainer").classList.add("hidden");
+    document.getElementById("bottomControls").classList.add("hidden");
+    confirmPopup.classList.add("hidden");
+  });
+
+  confirmNo.addEventListener("click", () => {
+    // Just close popup
+    confirmPopup.classList.add("hidden");
   });
 
   function generateValidGrid(size) {

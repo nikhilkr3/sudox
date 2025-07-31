@@ -9,14 +9,31 @@
   <body>
     <div class="container">
       <h1>Sudoku Puzzle</h1>
-      <select id="gridSize">
-        <option value="9" selected>9x9 (Nona)</option>
-        <option value="12">12x12 (Doza)</option>
-        <option value="16">16x16 (Hexa)</option>
-      </select>
-      <button id="randomBtn">Generate Puzzle</button>
-      <button id="downloadBtn">Download</button>
-      <div id="gridContainer"></div>
+
+      <div class="top-controls" id="topControls">
+        <select id="gridSize">
+          <option value="9" selected>9x9 (Nona)</option>
+          <option value="12">12x12 (Doza)</option>
+          <option value="16">16x16 (Hexa)</option>
+        </select>
+        <button id="randomBtn">Generate Puzzle</button>
+      </div>
+
+      <div id="gridContainer" class="hidden"></div>
+
+      <div class="bottom-controls hidden" id="bottomControls">
+        <button id="backBtn">Back</button>
+        <div id="confirmPopup" class="popup hidden">
+          <div class="popup-box">
+            <p>Are You Sure, you want to go back?</p>
+            <div class="popup-buttons">
+              <button id="confirmYes">Yes</button>
+              <button id="confirmNo">No</button>
+            </div>
+          </div>
+        </div>
+        <button id="downloadBtn">Download</button>
+      </div>
     </div>
 
     <script src="main.js"></script>
