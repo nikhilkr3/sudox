@@ -36,86 +36,153 @@ document.addEventListener("DOMContentLoaded", function () {
   };
 
   let currentGrid = [];
-  let currentSize = 0;
+  let currentSize = parseInt(gridSizeSelect.value);
 
   randomBtn.addEventListener("click", function () {
-    currentSize = parseInt(gridSizeSelect.value);
-    const solution = generateValidGrid(currentSize);
+    const gridSizeSelect = document.getElementById("gridSize");
+    currentSize = parseInt(gridSizeSelect.value); //Correct assignment
+
+    // Get format name and ID
+    const format = {
+      9: "nona",
+      12: "doza",
+      16: "hexa",
+    }[currentSize];
+
+    const hexId = getFormatHexId(format); // Move this above heading update
+    const seed = parseInt(hexId.slice(1, -2), 16);
+
+    // Hide default headings
+    document.getElementById("defaultHeading").classList.add("hidden");
+    document.getElementById("defaultDate").classList.add("hidden");
+
+    // Update and show puzzle heading
+    const puzzleName = {
+      9: "Nona",
+      12: "Doza",
+      16: "Hexa",
+    }[currentSize];
+
+    document.getElementById(
+      "puzzleHeading"
+    ).textContent = `Sudoku ${puzzleName} Puzzle`;
+    document.getElementById("puzzleHeading").classList.remove("hidden");
+
+    // Show puzzle ID in heading
+    document.getElementById("puzzleIdText").textContent = hexId;
+    document.getElementById("puzzleIdLine").classList.remove("hidden");
+
+    // Generate grid
+    const solution = generateValidGrid(currentSize, seed);
 
     if (currentSize === 12 || currentSize === 16) {
-      currentGrid = createSymmetricPuzzle(solution, currentSize);
+      currentGrid = createSymmetricPuzzle(solution, currentSize, seed);
     } else {
       currentGrid = createPuzzleFromGrid(solution, currentSize); // 9x9 non-symmetric
     }
 
     renderGrid(currentGrid, currentSize);
 
-    // Hide top controls (select + generate button)
+    // Hide top controls (select + generate)
     document.getElementById("topControls").classList.add("hidden");
 
-    // Show grid container
+    // Show puzzle grid
     document.getElementById("gridContainer").classList.remove("hidden");
 
-    // Show download button section
+    // Show download and back buttons
     document.getElementById("bottomControls").classList.remove("hidden");
-    randomBtn.style.display = "none"; // hide randomBtn
-    messageEl.textContent = "";
+
+    // Hide Random Button
+    document.getElementById("randomBtn").style.display = "none";
+
+    // Clear any messages if needed
+    const messageEl = document.getElementById("message");
+    if (messageEl) messageEl.textContent = "";
   });
 
+  //download button
   downloadBtn.addEventListener("click", function () {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
 
+    const linkedinURL = "https://www.linkedin.com/in/rathodnk/";
+
     const puzzle = currentGrid;
     const size = currentSize;
 
-    const n1 = {
-      9: "Nona",
-      12: "Doza",
-      16: "Hexa",
-    }[size];
+    // Determine format and hex ID
+    const formatMap = { 9: "nona", 12: "doza", 16: "hexa" };
+    const format = formatMap[size];
+    const hexId = getFormatHexId(format);
 
-    const cellSize = 10; // Size of each cell in mm
-    const startX = 20; // Left margin
-    const startY = 30; // Top margin
+    const titleMap = { 9: "Nona", 12: "Doza", 16: "Hexa" };
+    const n1 = titleMap[size];
 
+    const cellSize = 10; // mm
+    const totalGridSize = size * cellSize;
+
+    // Center grid horizontally
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const startX = (pageWidth - totalGridSize) / 2;
+    const startY = 30;
+
+    // 1. Print ID at top-right corner
+    doc.setFontSize(10);
+    doc.text(`${hexId}`, pageWidth - 20, 15, { align: "right" });
+
+    // 2. Puzzle title center
+    doc.setFontSize(13.5);
+    doc.text(`Sudoku ${n1} Puzzle (${size}x${size})`, pageWidth / 2, 20, {
+      align: "center",
+    });
+
+    // 3. Draw puzzle grid centered
     doc.setFontSize(12);
-    doc.text(`Sudoku ${n1} Puzzle (${size}x${size})`, startX, startY - 10);
-
     for (let row = 0; row < size; row++) {
       for (let col = 0; col < size; col++) {
         const x = startX + col * cellSize;
         const y = startY + row * cellSize;
 
-        // Draw square
         doc.rect(x, y, cellSize, cellSize);
 
         const val = puzzle[row][col];
         if (val !== "") {
-          doc.text(val, x + cellSize / 2 - 2, y + cellSize / 2 + 3); // Adjust text position
+          doc.text(val.toString(), x + cellSize / 2, y + cellSize / 2 + 1, {
+            align: "center",
+            baseline: "middle",
+          });
         }
       }
     }
 
-    // Optional: Thicker lines for block borders
+    // 4. Draw block lines thicker
     const block = blockDims[size];
-    const gridSize = size * cellSize;
-    doc.setLineWidth(1); // Thicker line for blocks
-
+    doc.setLineWidth(1);
     for (let i = 0; i <= size; i++) {
-      // Vertical thick lines
       if (i % block.cols === 0) {
         const x = startX + i * cellSize;
-        doc.line(x, startY, x, startY + gridSize);
+        doc.line(x, startY, x, startY + totalGridSize);
       }
-
-      // Horizontal thick lines
       if (i % block.rows === 0) {
         const y = startY + i * cellSize;
-        doc.line(startX, y, startX + gridSize, y);
+        doc.line(startX, y, startX + totalGridSize, y);
       }
     }
 
+    // 5. Print LinkedIn ID at center bottom
+    const pageHeight = doc.internal.pageSize.getHeight();
+    doc.setFontSize(10);
+    doc.textWithLink(
+      "linkedin.com/in/rathodnk", // <--your actual ID
+      pageWidth / 2,
+      pageHeight - 10,
+      {
+        url: linkedinURL,
+        align: "center",
+      }
+    );
+
+    // Save PDF
     doc.save(`sudoku_${size}x${size}.pdf`);
   });
 
@@ -130,6 +197,13 @@ document.addEventListener("DOMContentLoaded", function () {
   confirmYes.addEventListener("click", () => {
     // Proceed with back logic
     document.getElementById("topControls").classList.remove("hidden");
+
+    document.getElementById("defaultHeading").classList.remove("hidden");
+    document.getElementById("defaultDate").classList.remove("hidden");
+
+    document.getElementById("puzzleHeading").classList.add("hidden");
+    document.getElementById("puzzleIdLine").classList.add("hidden");
+
     document.getElementById("randomBtn").style.display = "inline-block";
     document.getElementById("gridContainer").classList.add("hidden");
     document.getElementById("bottomControls").classList.add("hidden");
@@ -141,38 +215,33 @@ document.addEventListener("DOMContentLoaded", function () {
     confirmPopup.classList.add("hidden");
   });
 
-  function generateValidGrid(size) {
+  function generateValidGrid(size, seed) {
     const dims = blockDims[size];
     let grid;
     let attempts = 0;
     const maxAttempts = 100;
-
-    // Try multiple times to generate a valid grid
     while (attempts < maxAttempts) {
       grid = Array(size)
         .fill()
         .map(() => Array(size).fill(""));
       const syms = symbols[size];
 
-      // Fill diagonal blocks first
       for (let br = 0; br < size; br += dims.rows) {
         for (let bc = 0; bc < size; bc += dims.cols) {
           if (br === bc) {
-            // Diagonal blocks only
             fillBlock(
               grid,
               br,
               bc,
               dims.rows,
               dims.cols,
-              shuffleArray([...syms])
+              shuffleArraySeeded([...syms], seed + br + bc)
             );
           }
         }
       }
 
-      // Try to fill remaining cells
-      if (fillRemaining(grid, 0, dims.rows, dims.cols, size)) {
+      if (fillRemaining(grid, 0, dims.rows, dims.cols, size, seed)) {
         if (validateGrid(grid, size)) {
           return grid;
         }
@@ -180,31 +249,26 @@ document.addEventListener("DOMContentLoaded", function () {
       attempts++;
     }
 
-    // Fallback - may have duplicates but won't freeze
-    return generateSimpleGrid(size, dims);
+    return generateSimpleGrid(size, dims, seed);
   }
 
-  function fillRemaining(grid, index, blockRows, blockCols, size) {
+  function fillRemaining(grid, index, blockRows, blockCols, size, seed) {
     if (index >= size * size) return true;
-
     const row = Math.floor(index / size);
     const col = index % size;
-
     if (grid[row][col] !== "") {
-      return fillRemaining(grid, index + 1, blockRows, blockCols, size);
+      return fillRemaining(grid, index + 1, blockRows, blockCols, size, seed);
     }
-
-    const syms = shuffleArray([...symbols[size]]);
+    const syms = shuffleArraySeeded([...symbols[size]], seed + index);
     for (const sym of syms) {
       if (isValidPlacement(grid, row, col, sym, blockRows, blockCols, size)) {
         grid[row][col] = sym;
-        if (fillRemaining(grid, index + 1, blockRows, blockCols, size)) {
+        if (fillRemaining(grid, index + 1, blockRows, blockCols, size, seed)) {
           return true;
         }
         grid[row][col] = "";
       }
     }
-
     return false;
   }
 
@@ -234,16 +298,21 @@ document.addEventListener("DOMContentLoaded", function () {
     return true;
   }
 
-  function generateSimpleGrid(size, dims) {
+  function generateSimpleGrid(size, dims, seed) {
     const grid = Array(size)
       .fill()
       .map(() => Array(size).fill(""));
     const syms = symbols[size];
-
-    // Just fill blocks with shuffled symbols (no row/col checks)
     for (let br = 0; br < size; br += dims.rows) {
       for (let bc = 0; bc < size; bc += dims.cols) {
-        fillBlock(grid, br, bc, dims.rows, dims.cols, shuffleArray([...syms]));
+        fillBlock(
+          grid,
+          br,
+          bc,
+          dims.rows,
+          dims.cols,
+          shuffleArraySeeded([...syms], seed + br + bc)
+        );
       }
     }
     return grid;
@@ -411,15 +480,20 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
-  function shuffleArray(array) {
+  function seededRandom(seed) {
+    let x = Math.sin(seed++) * 10000;
+    return x - Math.floor(x);
+  }
+
+  function shuffleArraySeeded(array, seed) {
     for (let i = array.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
+      const j = Math.floor(seededRandom(seed + i) * (i + 1));
       [array[i], array[j]] = [array[j], array[i]];
     }
     return array;
   }
 
-  function createPuzzleFromGrid(grid, size) {
+  function createPuzzleFromGrid(grid, size, seed) {
     const puzzle = Array(size)
       .fill()
       .map(() => Array(size).fill(""));
@@ -448,7 +522,7 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     }
 
-    shuffleArray(allPositions);
+    shuffleArraySeeded(allPositions, seed); //FIXED
 
     let placedClues = 0;
 
@@ -473,41 +547,34 @@ document.addEventListener("DOMContentLoaded", function () {
     return puzzle;
   }
 
-  function createSymmetricPuzzle(grid, size) {
+  function createSymmetricPuzzle(grid, size, seed) {
     const puzzle = Array(size)
       .fill()
       .map(() => Array(size).fill(""));
     const block = blockDims[size];
-
     const maxCluesPerUnit = size === 12 ? 6 : 8;
     const totalClueLimit = size === 12 ? 48 : 86;
-
     const rowClues = Array(size).fill(0);
     const colClues = Array(size).fill(0);
     const blockClues = Array(size).fill(0);
-
     const allPositions = [];
+
     for (let r = 0; r < size; r++) {
       for (let c = 0; c < size; c++) {
-        // Only fill half — symmetric counterpart will be handled
         if (r * size + c <= (size * size) / 2) {
           allPositions.push({ row: r, col: c });
         }
       }
     }
 
-    shuffleArray(allPositions);
-
+    shuffleArraySeeded(allPositions, seed);
     let placedClues = 0;
 
     for (const { row, col } of allPositions) {
       const symRow = size - 1 - row;
       const symCol = size - 1 - col;
-
       const blockIndex1 = getBlockIndex(row, col, block, size);
       const blockIndex2 = getBlockIndex(symRow, symCol, block, size);
-
-      // If positions are the same (center of grid), only add one
       const isSame = row === symRow && col === symCol;
       const neededClues = isSame ? 1 : 2;
 
@@ -542,7 +609,6 @@ document.addEventListener("DOMContentLoaded", function () {
         placedClues++;
       }
     }
-
     return puzzle;
   }
 
@@ -551,5 +617,15 @@ document.addEventListener("DOMContentLoaded", function () {
     const blockCol = Math.floor(col / block.cols);
     const blocksPerRow = size / block.cols;
     return blockRow * blocksPerRow + blockCol;
+  }
+
+  function getFormatHexId(format) {
+    const d = new Date();
+    const dd = String(d.getDate()).padStart(2, "0");
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const yy = String(d.getFullYear()).slice(-2);
+    return `#${
+      format === "nona" ? 9 : format === "doza" ? 12 : 16
+    }${dd}${mm}${yy}`.toLowerCase();
   }
 });

@@ -8,7 +8,13 @@
   </head>
   <body>
     <div class="container">
-      <h1>Sudoku Puzzle</h1>
+      <h1 id="defaultHeading">Sudoku Puzzle</h1>
+      <h3 id="defaultDate">Today's date: <span id="todayDate"></span></h3>
+
+      <h1 id="puzzleHeading" class="hidden">Sudoku Puzzle</h1>
+      <h3 id="puzzleIdLine" class="hidden">
+        ID: <span id="puzzleIdText"></span>
+      </h3>
 
       <div class="top-controls" id="topControls">
         <select id="gridSize">
@@ -16,7 +22,7 @@
           <option value="12">12x12 (Doza)</option>
           <option value="16">16x16 (Hexa)</option>
         </select>
-        <button id="randomBtn">Generate Puzzle</button>
+        <button id="randomBtn">Today's Puzzle</button>
       </div>
 
       <div id="gridContainer" class="hidden"></div>
@@ -25,7 +31,7 @@
         <button id="backBtn">Back</button>
         <div id="confirmPopup" class="popup hidden">
           <div class="popup-box">
-            <p>Are You Sure, you want to go back?</p>
+            <p>Are You Sure you want to go back?</p>
             <div class="popup-buttons">
               <button id="confirmYes">Yes</button>
               <button id="confirmNo">No</button>
@@ -36,6 +42,33 @@
       </div>
     </div>
 
+    <!-- LinkedIn Footer -->
+    <div>
+      <footer>
+        <p>
+          Created by
+          <a
+            href="https://www.linkedin.com/in/rathodnk"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            linkedin.com/in/rathodnk
+          </a>
+        </p>
+      </footer>
+    </div>
+
+    <script>
+      // Set today's date dynamically
+      const today = new Date();
+      const options = {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      };
+      document.getElementById("todayDate").textContent =
+        today.toLocaleDateString(undefined, options);
+    </script>
     <script src="main.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   </body>
