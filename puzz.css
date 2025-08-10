@@ -1,5 +1,7 @@
+@import url("https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400;1,700&display=swap");
+
 body {
-  font-family: Arial, sans-serif;
+  font-family: Arial, Helvetica, sans-serif;
   display: flex;
   justify-content: top;
   align-items: center;
@@ -118,7 +120,7 @@ h3 {
   height: 40px;
   width: 40px;
   font-size: 20px;
-  font-family: monospace;
+  font-family: "Courier Prime", monospace;
   transition: background-color 0.2s;
 }
 
@@ -128,6 +130,9 @@ h3 {
   border: none;
   text-align: center;
   font-size: 20px;
+  font-family: "Courier Prime", monospace;
+  color: #1d4ed8;
+  font-weight: 700;
   background: transparent;
   outline: none;
 }

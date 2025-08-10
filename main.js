@@ -499,21 +499,19 @@ document.addEventListener("DOMContentLoaded", function () {
       .map(() => Array(size).fill(""));
     const block = blockDims[size];
 
-    const maxCluesPerUnit = {
-      9: 4,
-      12: 5,
-      16: 7,
-    }[size];
-
-    const totalClueLimit = {
-      9: 27,
-      12: 48,
-      16: 86,
-    }[size];
+    const maxCluesPerUnit = 5;
+    const totalClueLimit = 36;
 
     const rowClues = Array(size).fill(0);
     const colClues = Array(size).fill(0);
     const blockClues = Array(size).fill(0);
+
+    // Symbol frequency map to ensure each appears at least once and at most 5 times
+    const symbolFreq = {};
+    const validSymbols = symbols[size];
+    for (const sym of validSymbols) {
+      symbolFreq[sym] = 0;
+    }
 
     const allPositions = [];
     for (let r = 0; r < size; r++) {
@@ -522,7 +520,7 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     }
 
-    shuffleArraySeeded(allPositions, seed); //FIXED
+    shuffleArraySeeded(allPositions, seed ^ 0xabcdef);
 
     let placedClues = 0;
 
@@ -530,17 +528,45 @@ document.addEventListener("DOMContentLoaded", function () {
       if (placedClues >= totalClueLimit) break;
 
       const blockIndex = getBlockIndex(row, col, block, size);
+      const sym = grid[row][col];
 
       if (
         rowClues[row] < maxCluesPerUnit &&
         colClues[col] < maxCluesPerUnit &&
-        blockClues[blockIndex] < maxCluesPerUnit
+        blockClues[blockIndex] < maxCluesPerUnit &&
+        symbolFreq[sym] < 5
       ) {
-        puzzle[row][col] = grid[row][col];
+        puzzle[row][col] = sym;
         rowClues[row]++;
         colClues[col]++;
         blockClues[blockIndex]++;
+        symbolFreq[sym]++;
         placedClues++;
+      }
+    }
+
+    // Ensure each symbol appears at least once (fallback placement if missing)
+    for (const sym of validSymbols) {
+      if (symbolFreq[sym] === 0) {
+        outer: for (let r = 0; r < size; r++) {
+          for (let c = 0; c < size; c++) {
+            const blockIndex = getBlockIndex(r, c, block, size);
+            if (
+              puzzle[r][c] === "" &&
+              rowClues[r] < maxCluesPerUnit &&
+              colClues[c] < maxCluesPerUnit &&
+              blockClues[blockIndex] < maxCluesPerUnit
+            ) {
+              puzzle[r][c] = sym;
+              rowClues[r]++;
+              colClues[c]++;
+              blockClues[blockIndex]++;
+              symbolFreq[sym]++;
+              placedClues++;
+              break outer;
+            }
+          }
+        }
       }
     }
 
@@ -551,12 +577,20 @@ document.addEventListener("DOMContentLoaded", function () {
     const puzzle = Array(size)
       .fill()
       .map(() => Array(size).fill(""));
+
     const block = blockDims[size];
-    const maxCluesPerUnit = size === 12 ? 6 : 8;
-    const totalClueLimit = size === 12 ? 48 : 86;
+    const maxCluesPerUnit = size === 12 ? 7 : 9;
+    const totalClueLimit = size === 12 ? 65 : 116;
+    const maxSymbolLimit = size === 12 ? 7 : 9;
+
     const rowClues = Array(size).fill(0);
     const colClues = Array(size).fill(0);
     const blockClues = Array(size).fill(0);
+
+    const symbolFreq = {};
+    const validSymbols = symbols[size];
+    for (const sym of validSymbols) symbolFreq[sym] = 0;
+
     const allPositions = [];
 
     for (let r = 0; r < size; r++) {
@@ -573,13 +607,22 @@ document.addEventListener("DOMContentLoaded", function () {
     for (const { row, col } of allPositions) {
       const symRow = size - 1 - row;
       const symCol = size - 1 - col;
-      const blockIndex1 = getBlockIndex(row, col, block, size);
-      const blockIndex2 = getBlockIndex(symRow, symCol, block, size);
       const isSame = row === symRow && col === symCol;
       const neededClues = isSame ? 1 : 2;
 
       if (placedClues + neededClues > totalClueLimit) continue;
 
+      const blockIndex1 = getBlockIndex(row, col, block, size);
+      const blockIndex2 = getBlockIndex(symRow, symCol, block, size);
+
+      const val1 = grid[row][col];
+      const val2 = grid[symRow][symCol];
+
+      // Check frequency limit
+      if (symbolFreq[val1] + (isSame ? 1 : 1) > maxSymbolLimit) continue;
+      if (!isSame && symbolFreq[val2] + 1 > maxSymbolLimit) continue;
+
+      // Check clue constraints
       if (
         rowClues[row] + 1 > maxCluesPerUnit ||
         colClues[col] + 1 > maxCluesPerUnit ||
@@ -595,20 +638,50 @@ document.addEventListener("DOMContentLoaded", function () {
       )
         continue;
 
-      puzzle[row][col] = grid[row][col];
+      // Place first clue
+      puzzle[row][col] = val1;
       rowClues[row]++;
       colClues[col]++;
       blockClues[blockIndex1]++;
+      symbolFreq[val1]++;
       placedClues++;
 
+      // Place symmetric clue
       if (!isSame) {
-        puzzle[symRow][symCol] = grid[symRow][symCol];
+        puzzle[symRow][symCol] = val2;
         rowClues[symRow]++;
         colClues[symCol]++;
         blockClues[blockIndex2]++;
+        symbolFreq[val2]++;
         placedClues++;
       }
     }
+
+    // Ensure each symbol appears at least once
+    for (const sym of validSymbols) {
+      if (symbolFreq[sym] === 0) {
+        outer: for (let r = 0; r < size; r++) {
+          for (let c = 0; c < size; c++) {
+            const blockIndex = getBlockIndex(r, c, block, size);
+            if (
+              puzzle[r][c] === "" &&
+              rowClues[r] < maxCluesPerUnit &&
+              colClues[c] < maxCluesPerUnit &&
+              blockClues[blockIndex] < maxCluesPerUnit
+            ) {
+              puzzle[r][c] = sym;
+              rowClues[r]++;
+              colClues[c]++;
+              blockClues[blockIndex]++;
+              symbolFreq[sym]++;
+              placedClues++;
+              break outer;
+            }
+          }
+        }
+      }
+    }
+
     return puzzle;
   }
 
