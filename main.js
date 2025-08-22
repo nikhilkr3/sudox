@@ -39,8 +39,7 @@ document.addEventListener("DOMContentLoaded", function () {
   let currentSize = parseInt(gridSizeSelect.value);
 
   randomBtn.addEventListener("click", function () {
-    const gridSizeSelect = document.getElementById("gridSize");
-    currentSize = parseInt(gridSizeSelect.value); //Correct assignment
+    currentSize = parseInt(gridSizeSelect.value);
 
     // Get format name and ID
     const format = {
@@ -49,7 +48,7 @@ document.addEventListener("DOMContentLoaded", function () {
       16: "hexa",
     }[currentSize];
 
-    const hexId = getFormatHexId(format); // Move this above heading update
+    const hexId = getFormatHexId(format);
     const seed = parseInt(hexId.slice(1, -2), 16);
 
     // Hide default headings
@@ -78,7 +77,8 @@ document.addEventListener("DOMContentLoaded", function () {
     if (currentSize === 12 || currentSize === 16) {
       currentGrid = createSymmetricPuzzle(solution, currentSize, seed);
     } else {
-      currentGrid = createPuzzleFromGrid(solution, currentSize); // 9x9 non-symmetric
+      // FIX: Pass the seed to the function for 9x9
+      currentGrid = createPuzzleFromGrid(solution, currentSize, seed);
     }
 
     renderGrid(currentGrid, currentSize);
@@ -410,66 +410,71 @@ document.addEventListener("DOMContentLoaded", function () {
             }
           });
 
-          document.querySelectorAll(".input-cell").forEach((input) => {
-            input.addEventListener("keydown", (e) => {
-              const row = parseInt(input.dataset.row);
-              const col = parseInt(input.dataset.col);
+          // FIX: Updated keydown listener to properly skip obstacles
+          input.addEventListener("keydown", (e) => {
+            const currentRow = parseInt(e.target.dataset.row);
+            const currentCol = parseInt(e.target.dataset.col);
 
-              const getInput = (r, c) =>
-                document.querySelector(
-                  `input[data-row="${r}"][data-col="${c}"]`
-                );
+            let nextRow = currentRow;
+            let nextCol = currentCol;
 
-              let target = null;
+            const totalCells = size * size;
+            let currentIndex = currentRow * size + currentCol;
+            let nextIndex = currentIndex;
 
-              const tryMove = (dr, dc) => {
-                let r = row + dr;
-                let c = col + dc;
-                while (r >= 0 && r < currentSize && c >= 0 && c < currentSize) {
-                  const candidate = getInput(r, c);
-                  if (candidate) return candidate;
-                  r += dr;
-                  c += dc;
-                }
-                return null;
-              };
+            switch (e.key) {
+              case "ArrowUp":
+                // Move backward in the linear index
+                nextIndex = (currentIndex - size + totalCells) % totalCells;
+                break;
+              case "ArrowDown":
+                // Move forward in the linear index
+                nextIndex = (currentIndex + size) % totalCells;
+                break;
+              case "ArrowLeft":
+                // Move backward, handle wrap-around for row end to beginning
+                nextIndex = (currentIndex - 1 + totalCells) % totalCells;
+                break;
+              case "ArrowRight":
+                // Move forward, handle wrap-around for row beginning to end
+                nextIndex = (currentIndex + 1) % totalCells;
+                break;
+              default:
+                return; // Exit if not an arrow key
+            }
 
-              const fallback = (dr, dc) => {
-                // Start from the opposite edge
-                let r, c;
-                if (dr === -1)
-                  r = currentSize - 1; // ArrowUp - start from bottom
-                else if (dr === 1) r = 0; // ArrowDown - start from top
-                else r = row;
+            let searchCount = 0;
+            while (searchCount < totalCells) {
+              const targetRow = Math.floor(nextIndex / size);
+              const targetCol = nextIndex % size;
+              const nextInput = document.querySelector(
+                `input[data-row="${targetRow}"][data-col="${targetCol}"]`
+              );
 
-                if (dc === -1)
-                  c = currentSize - 1; // ArrowLeft - start from right
-                else if (dc === 1) c = 0; // ArrowRight - start from left
-                else c = col;
+              if (nextInput) {
+                e.preventDefault();
+                nextInput.focus();
+                return;
+              }
 
-                return getInput(r, c);
-              };
-
+              // Move to the next cell to check, based on key direction
               switch (e.key) {
                 case "ArrowUp":
-                  target = tryMove(-1, 0) || fallback(-1, 0);
+                  nextIndex = (nextIndex - size + totalCells) % totalCells;
                   break;
                 case "ArrowDown":
-                  target = tryMove(1, 0) || fallback(1, 0);
+                  nextIndex = (nextIndex + size) % totalCells;
                   break;
                 case "ArrowLeft":
-                  target = tryMove(0, -1) || fallback(0, -1);
+                  nextIndex = (nextIndex - 1 + totalCells) % totalCells;
                   break;
                 case "ArrowRight":
-                  target = tryMove(0, 1) || fallback(0, 1);
+                  nextIndex = (nextIndex + 1) % totalCells;
                   break;
               }
 
-              if (target) {
-                e.preventDefault();
-                target.focus();
-              }
-            });
+              searchCount++;
+            }
           });
 
           cell.appendChild(input);
@@ -523,6 +528,7 @@ document.addEventListener("DOMContentLoaded", function () {
     shuffleArraySeeded(allPositions, seed ^ 0xabcdef);
 
     let placedClues = 0;
+    const rand = mulberry32(seed ^ 0x123456);
 
     for (const { row, col } of allPositions) {
       if (placedClues >= totalClueLimit) break;
@@ -534,7 +540,8 @@ document.addEventListener("DOMContentLoaded", function () {
         rowClues[row] < maxCluesPerUnit &&
         colClues[col] < maxCluesPerUnit &&
         blockClues[blockIndex] < maxCluesPerUnit &&
-        symbolFreq[sym] < 5
+        symbolFreq[sym] < 5 &&
+        rand() < 0.7 // 70% chance to accept
       ) {
         puzzle[row][col] = sym;
         rowClues[row]++;
@@ -580,7 +587,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const block = blockDims[size];
     const maxCluesPerUnit = size === 12 ? 7 : 9;
-    const totalClueLimit = size === 12 ? 65 : 116;
+    const totalClueLimit = size === 12 ? 64 : 116;
     const maxSymbolLimit = size === 12 ? 7 : 9;
 
     const rowClues = Array(size).fill(0);
@@ -700,5 +707,15 @@ document.addEventListener("DOMContentLoaded", function () {
     return `#${
       format === "nona" ? 9 : format === "doza" ? 12 : 16
     }${dd}${mm}${yy}`.toLowerCase();
+  }
+
+  // Linear congruential generator for creating a pseudorandom number stream
+  function mulberry32(a) {
+    return function () {
+      let t = (a += 0x6d2b79f5);
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
   }
 });
